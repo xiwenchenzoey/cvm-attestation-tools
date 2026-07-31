@@ -2,6 +2,20 @@
 
 set -e
 
+#
+# Run apt non-interactively.
+#
+# `sudo` resets the environment (env_reset in sudoers), so exporting
+# DEBIAN_FRONTEND / NEEDRESTART_MODE in this script does not reach apt-get.
+# Without them, Ubuntu 22.04+ shows the needrestart "Which services should be
+# restarted?" whiptail dialog, which blocks forever on stdin when this script
+# runs from automation (no TTY).
+#
+apt_get() {
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+        apt-get -y -o Dpkg::Options::=--force-confold "$@"
+}
+
 # Function to check if a command succeeded and retry up to 5 times if it fails
 retry_command() {
     local n=1
@@ -27,7 +41,7 @@ retry_command sudo apt-get update
 
 # Install tpm2-tools and Python
 echo "Installing tpm2-tools and Python..."
-retry_command sudo apt-get install -y tpm2-tools python3 python3-pip
+retry_command apt_get install tpm2-tools python3 python3-pip
 
 # Detect Ubuntu version
 UBUNTU_VERSION=$(lsb_release -sr)
